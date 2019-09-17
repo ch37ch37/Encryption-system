@@ -1,0 +1,177 @@
+int strbinTodecimal(char *);
+void printBinary(int dec);
+int calcG(int num,int a);
+int SBOX_AES(int n);
+int NS(int n);
+int SR(int n);
+int MC(int n);
+int Mul(int n,int b);
+int AES(int ,char *);
+
+
+
+
+int AES(int pText,char *key){
+
+    int w[6]={0,};
+    int i,kText,encText,w_;
+
+    //pText = strbinTodecimal(plainText);
+    kText = strbinTodecimal(key);
+
+
+    w[0] = (kText&65280)>>8;
+    w[1] = kText&255;
+    w[2] = calcG(w[1],1)^w[0];
+    w[3] = w[1]^w[2];
+    w[4] = calcG(w[3],2)^w[2];
+    w[5] = w[3]^w[4];
+
+    w_ = (w[0]<<8) + w[1];
+    encText = pText ^ w_;
+
+    encText = NS(encText);
+
+    encText = SR(encText);
+
+    encText = MC(encText);
+
+    w_ = (w[2]<<8) + w[3];
+    encText = encText ^ w_;
+
+    encText = NS(encText);
+
+    encText = SR(encText);
+
+    w_ = (w[4]<<8) + w[5];
+    encText = encText ^ w_;
+    printBinary(encText);
+
+    return encText;
+}
+int strbinTodecimal(char *x){
+    int result=0, i;
+
+    for(i=0; i<16; i++){
+        result = result + (x[i]-'0')*pow(2,15-i);
+        printf("%d result :%d\n",i,result);
+    }
+    return result;
+}
+void printBinary(int dec){
+    int i, bin[16];
+
+    for(i=0; i<15; i++){
+        bin[15-i]=dec%2;
+        dec=dec/2;
+    }
+    bin[0]=dec;
+
+    for(i=0; i<16; i++)
+        printf("%d",bin[i]);
+}
+int calcG(int num,int a){
+    int i,num0,num1,s0,s1;
+    num1=num & 15;//9
+    num0=(num & 240)>>4;//11
+    s0=SBOX_AES(num1);//2
+    s1=SBOX_AES(num0);//3
+    if(a==1){
+        s0=s0^8;
+        }
+    else{
+        s0=s0^3;
+    }
+    return (s0<<4)+s1;
+}
+int SBOX_AES(int n){
+    int SBOX_AES[4][4]={{9,4,10,11},
+                  {13,1,8,5},
+                  {6,2,0,3},
+                  {12,14,15,7}};
+    int binary[4]={0,};
+    int i=0,a,b;
+
+    while(1){
+        binary[3-i]=n%2;
+        n=n/2;
+        i++;
+        if(n==0)
+            break;
+    }
+    a=binary[0]*2+binary[1];
+    b=binary[2]*2+binary[3];
+
+    return SBOX_AES[a][b];
+}
+int NS(int n){
+    int n1,n2,n3,n4;
+    n1 = (n>>12)&15;
+    n2 = (n>>8)&15;
+    n3 = (n>>4)&15;
+    n4 = n&15;
+
+    return (SBOX_AES(n1)<<12) + (SBOX_AES(n2)<<8) + (SBOX_AES(n3)<<4) + SBOX_AES(n4);
+}
+int SR(int n){
+    int n1,n2,n3,n4;
+    n1 = (n>>12)&15;
+    n2 = (n>>8)&15;
+    n3 = (n>>4)&15;
+    n4 = n&15;
+
+    return (n1<<12) + (n4<<8) + (n3<<4) + (n2);
+}
+int MC(int n){
+    int mc[2][2]={{1,4},
+                  {4,1}};
+    int n1,n2,n3,n4;
+    int n1_,n2_,n3_,n4_;
+
+    n1_ = (n>>12)&15;
+    n2_ = (n>>8)&15;
+    n3_ = (n>>4)&15;
+    n4_ = n&15;
+
+    n1 = (n1_^Mul(n2_,mc[0][1]))<<12;
+    n2 = (n2_^Mul(n1_,mc[1][0]))<<8;
+    n3 = (n3_^Mul(n4_,mc[0][1]))<<4;
+    n4 = (n4_^Mul(n3_,mc[1][0]));
+    return n1 + n2 +n3 +n4;
+}
+int Mul(int n,int b){
+    int x[3];
+    int r,i,result=0;
+    if(n >= 8)
+        x[0]=((n<<1)-16)^3;
+    else
+        x[0]=n<<1;
+    if(x[0] >= 8)
+        x[1]=((x[0]<<1)-16)^3;
+    else
+        x[1]=x[0]<<1;
+    if(x[1] >= 8)
+        x[2]=((x[1]<<1)-16)^3;
+    else
+        x[2]=x[1]<<1;
+    r=b%2;
+    if(r==1)
+        result=result^1;
+    else
+        result=result^0;
+    b=b/2;
+    for(i=0; i<2; i++){
+        r=b%2;
+        if(r==1)
+            result=result^x[i];
+        else
+            result=result^0;
+        b=b/2;
+    }
+    if(b==1)
+        result=result^x[2];
+    else
+        result=result^0;
+
+	return result;
+}
